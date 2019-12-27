@@ -32,19 +32,59 @@ void makeXnor(FILE*);
 void makeDecoder(FILE*);
 void makeMultiplexer(FILE*);
 
+/*
+ * Structure: var
+ *
+ * Linked list node to store the name and values of the input, temporary, and output variables.
+ *
+ * name: String of variable name
+ *
+ * value: Logical value of variable: 0 or 1
+ *
+ */
+
 struct var {
 	char* name;
 	int value;
 	struct var* next;
 };
 
+/*
+ * Structure: line
+ *
+ * Linked list node to store components of the circuit
+ *
+ * oper: The type of logic gate
+ *	0:NOT
+ *	1:AND
+ *	2:OR
+ *	3:NAND
+ *	4:NOR
+ *	5:XOR
+ *	6:XNOR
+ *	7:DECODER
+ *	8:MULTIPLEXER
+ *
+ * num_inputs: Number of input variables, needs to be a power of two
+ *
+ * num_outputs: Number of output variables
+ *
+ * inputs: String array of input variable names, used to find the var structs
+ *
+ * outputs: String array of output variable names, used to find the var structs
+ *
+ * multi: Only used for multiplexers (oper=8)
+ *	Store the encoding of the the multiplexer
+ *
+ */
+
 struct line {
 	int oper;
 	int num_inputs;
 	int num_outputs;
-	char** inputs; //For multiplexers: Store the selects
+	char** inputs;
 	char** outputs;
-	char** multi; //For multiplexers: Store the encoding
+	char** multi;
 	struct line* next;
 };
 
@@ -53,33 +93,28 @@ int num_vars = 0;
 
 struct line* linehead = NULL;
 
+/*
+ * Function: insert
+ *
+ * Create and insert a new var struct into the linked list
+ *
+ * name: String of the character name
+ * 	Limited to 64 characters
+ *
+ * value: Logical value of the variable
+ *
+ */
 void insert(char* name, int value) {
 	
 	/*Variable already exists*/
 	if(exists(name) == 1) {
 		return;
 	}
-
 	struct var* temp = malloc(sizeof(struct var));
 	char* tempname = malloc(64*sizeof(char));
 	strcpy(tempname, name);
 	temp->name = tempname;
 	temp->value = value;
-	/*
-	temp->next = NULL;
-
-	if(head == NULL) {
-		temp->next = NULL;
-		head = temp;
-		num_vars++;
-	}
-	
-	struct var* ptr = head;
-	while(ptr->next != NULL) {
-		ptr = ptr->next;
-	}
-	ptr->next = temp;
-	*/
 	/*Insert at head*/
 	temp->next = head;
 	head = temp;
@@ -87,6 +122,25 @@ void insert(char* name, int value) {
 	return;
 }
 
+
+/*
+ * Function: insertLine
+ *
+ * Create and insert a new line struct into the linked list
+ *
+ * oper: The type of logic gate
+ *
+ * num_inputs: Number of input variables, needs to be a power of two
+ *
+ * num_outputs: Number of output variables
+ *
+ * inputs: String array of input variable names
+ *
+ * outputs: String array of output variable names
+ *
+ * multi: Multiplexer encoding; only used for multiplexers, NULL otherwise
+ *
+ */
 void insertLine(int oper, int num_inputs, int num_outputs, char** inputs, char** outputs, char** multi) {
 	struct line* temp = malloc(sizeof(struct line));
 	char** in = malloc(num_inputs*sizeof(char*));
@@ -128,6 +182,16 @@ void insertLine(int oper, int num_inputs, int num_outputs, char** inputs, char**
 	return;
 }
 
+/*
+ * Function: exists
+ *
+ * Performs a search through the linked list of variables to find if a variable exists
+ *
+ * name: Name of the variable*
+ *
+ * returns: 1 if a variable exists, 0 if not
+ *
+ */
 int exists(char* name) {
 	/*Is a 0 or 1*/
 	if(strcmp(name, "0") == 0 || strcmp(name, "1") == 0) {
@@ -137,6 +201,7 @@ int exists(char* name) {
 	if(head == NULL) {
 		return 0;
 	}
+	/*Search through the linked list*/
 	struct var* ptr = head;
 	while(ptr != NULL) {
 		if(strcmp(ptr->name, name) == 0) {
@@ -147,6 +212,16 @@ int exists(char* name) {
 	return 0;
 }
 
+/*
+ * Function: validPowerTwo
+ *
+ * Determines if a number is a power of two
+ *
+ * num: the number to check
+ *
+ * returns: true if power of two, false otherwise
+ *
+ */
 bool validPowerTwo(int num) {
         if((num & (num-1)) == 0) {
                 return true;
@@ -154,6 +229,16 @@ bool validPowerTwo(int num) {
         return false;
 }
 
+/*
+ * Function: log_2
+ *
+ * Calculates the log base 2 of a number
+ * Must be power of two to accurate calculate
+ *
+ * num: the number of perform the logarithmic operation on
+ *
+ * return: log2 of the number
+ */
 int log_2(int num) {
         if(num == 0) {
                 return -1;
@@ -169,7 +254,17 @@ int log_2(int num) {
         return ret;
 }
 
-/*Assumes the name is in the LL*/
+/*
+ * Function: setValue
+ *
+ * Changes the value of a provided variable
+ * Assumes that the variable exists
+ *
+ * name: The variable name
+ *
+ * value: The new value of the variable
+ *
+ */
 void setValue(char* name, int value) {
 	struct var* ptr = head;
 	while(strcmp(ptr->name, name) != 0) {
@@ -179,7 +274,17 @@ void setValue(char* name, int value) {
 	return;
 }
 
-/*Assumes the name is in the LL*/
+/*
+ * Function: getValue
+ *
+ * Fetches the value of the variable
+ * Assumes that the variable exists
+ *
+ * name: The name of the variable
+ *
+ * returns: The value of the variable (0 or 1) or 
+ * 	0 or 1 if the input string is "0" or "1" respectively
+ */
 int getValue(char* name) {
 	if(strcmp(name, "0") == 0) {
 		return 0;
@@ -194,25 +299,28 @@ int getValue(char* name) {
 	return ptr->value;
 }
 
+/*
+ * Functions: Basic logic gates
+ *
+ * Performs basic logical operations, using bitwise operations where appropriate
+ *
+ * in1: The first input
+ *
+ * in2: The second input
+ *
+ * returns: The value of the logic operation applied to the input(s)
+ */
+
 int myNot(int in) {
-	if(in == 1) {
-		return 0;
-	}
-	return 1;
+	return (in == 0);
 }
 
 int myAnd(int in1, int in2) {
-	if((in1 == 1) && (in2 == 1)) {
-		return 1;
-	}
-	return 0;
+	return in1 & in2;
 }
 
 int myOr(int in1, int in2) {
-	if((in1 + in2) >= 1) {
-		return 1;
-	}
-	return 0;
+	return in1 | in2;
 }
 
 int myNand(int in1, int in2) {
@@ -224,17 +332,25 @@ int myNor(int in1, int in2) {
 }
 
 int myXor(int in1, int in2) {
-	if((in1 + in2) == 1) {
-		return 1;
-	}
-	return 0;
+	return in1 ^ in2;
 }
 
 int myXnor(int in1, int in2) {
 	return myNot(myXor(in1, in2));
 }
 
-/*Returns an int that represents the nth output to be selected*/
+/*
+ * Function: myDecoder
+ *
+ * Simulates a decoder logic gate that takes n inputs and 2^n outputs
+ * Outputs a "1" to the selected output in gray code order
+ *
+ * in: Array of inputs
+ *
+ * num_inputs: The number of inputs
+ *
+ * returns: An int with the corresponding outputs in binary
+ */
 int myDecoder(int* in, int num_inputs) {
 	int code = 0;
 	for(int i = 0; i < num_inputs; i++) {
@@ -244,6 +360,21 @@ int myDecoder(int* in, int num_inputs) {
 	return grayToBinary(code);
 }
 
+/*
+ * Function: myMultiplexer
+ *
+ * Simulates a multiplexer logic gate that takes n inputs, 2^n encoding inputs, and 1 output
+ * Outputs a the value of the encoding input based on the inputs
+ * The encoding inputs are in gray code
+ *
+ * encoding: Encoding array
+ *
+ * in: Array of inputs
+ *
+ * num_inputs: The number of inputs
+ *
+ * returns: The value of the selected input
+ */
 int myMultiplexer(int* encoding, int* in, int num_inputs) {
 	int code = 0;
 	for(int i = 0; i < num_inputs; i++) {
@@ -253,16 +384,44 @@ int myMultiplexer(int* encoding, int* in, int num_inputs) {
 	return encoding[grayToBinary(code)];
 }
 
+/*
+ * Function: grayToBinary
+ *
+ * Converts gray code stored as an int to binary stored as a int
+ *
+ * in: Gray code stored as an int
+ *
+ * returns: Binary stored as an int
+ */
 int grayToBinary(int in) {
 	int temp = in;
 	while(in >>= 1) temp ^= in;
 	return temp;
 }
 
+/*
+ * Function: binaryToGray
+ *
+ * Converts binary stored as an in to gray code stored as an int
+ *
+ * in: Binary stored as an int
+ *
+ * returns: Gray code stored as an int
+ */
 int binaryToGray(int in) {
 	return in ^ (in-1);
 }
 
+/*
+ * Function: genGrayCode
+ *
+ * Generates a sequence of gray code
+ *
+ * bits: Number of bits
+ * 	Generates 2^bits gray code numbers
+ *
+ * returns: An array of ints, with the sequence of gray code
+ */
 int* genGrayCode(int bits) {
 	int n = 2 << (bits-1);
 	int* ret = malloc(n*sizeof(int));
@@ -272,6 +431,15 @@ int* genGrayCode(int bits) {
 	return ret;
 }
 
+/*
+ * Function: makeNot
+ *
+ * Creates a NOT logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the NOT gate arguments
+ *
+ */
 void makeNot(FILE* datafile) {
 	char** in = malloc(sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -288,6 +456,15 @@ void makeNot(FILE* datafile) {
 	free(out);
 }
 
+/*
+ * Function: makeAnd
+ *
+ * Creates a AND logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the AND gate arguments
+ *
+ */
 void makeAnd(FILE* datafile) {
 	char** in = malloc(2*sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -308,6 +485,15 @@ void makeAnd(FILE* datafile) {
 	free(out);
 }	
 
+/*
+ * Function: makeOr
+ *
+ * Creates a OR logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the OR gate arguments
+ *
+ */
 void makeOr(FILE* datafile) {
 	char** in = malloc(2*sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -328,6 +514,15 @@ void makeOr(FILE* datafile) {
 	free(out);
 }
 
+/*
+ * Function: makeNand
+ *
+ * Creates a NAND logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the NAND gate arguments
+ *
+ */
 void makeNand(FILE* datafile) {
 	char** in = malloc(2*sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -349,6 +544,15 @@ void makeNand(FILE* datafile) {
 
 }
 
+/*
+ * Function: makeNor
+ *
+ * Creates a NOR logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the NOR gate arguments
+ *
+ */
 void makeNor(FILE* datafile) {
 	char** in = malloc(2*sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -370,6 +574,15 @@ void makeNor(FILE* datafile) {
 
 }
 
+/*
+ * Function: makeXor
+ *
+ * Creates a XOR logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the XOR gate arguments
+ *
+ */
 void makeXor(FILE* datafile) {
 	char** in = malloc(2*sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -391,6 +604,15 @@ void makeXor(FILE* datafile) {
 
 }
 
+/*
+ * Function: makeXnor
+ *
+ * Creates a XNOR logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the XNOR gate arguments
+ *
+ */
 void makeXnor(FILE* datafile) {
 	char** in = malloc(2*sizeof(char*));
 	in[0] = malloc(32*sizeof(char));
@@ -411,6 +633,15 @@ void makeXnor(FILE* datafile) {
 	free(out);
 }
 
+/*
+ * Function: makeDecoder
+ *
+ * Creates a DECODER logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the DECODER gate arguments
+ *
+ */
 void makeDecoder(FILE* datafile) {
 	int num_inputs = 0;
 	fscanf(datafile, " %d", &num_inputs);
@@ -435,6 +666,15 @@ void makeDecoder(FILE* datafile) {
 	/*Free string arrays*/
 }
 
+/*
+ * Function: makeMultiplexer
+ *
+ * Creates a MULTIPLEXER logic gate
+ *
+ * datafile: The file in which the circuit is defined
+ * 	The file pointer has been set to the start of the MULTIPLEXER gate arguments
+ *
+ */
 void makeMultiplexer(FILE* datafile) {
 	int num_inputs = 0;
 	fscanf(datafile, " %d", &num_inputs);
@@ -466,6 +706,7 @@ void makeMultiplexer(FILE* datafile) {
 
 int main(int argc, char** argv) {
 
+	/*Checks for a file name argument*/
 	if(argc < 2){
 		printf("error");
 		exit(0);
@@ -476,6 +717,7 @@ int main(int argc, char** argv) {
 	int num_inputs = 0;
 	fscanf(datafile, "INPUTVAR %d", &num_inputs);
 	char* tempname = malloc(64*sizeof(char));
+	/*Input array to store just the input nodes*/
 	struct var** inputArray = malloc(num_inputs*sizeof(struct var*));
 	for(int i = 0; i < num_inputs; i++) {
 		fscanf(datafile, " %s", tempname);
@@ -486,6 +728,7 @@ int main(int argc, char** argv) {
 	/*Determine the output variables*/
 	int num_outputs = 0;
 	fscanf(datafile, "OUTPUTVAR %d", &num_outputs);
+	/*Output array to store just the output nodes*/
 	struct var** outputArray = malloc(num_outputs*sizeof(struct var*));
 	for(int i = 0; i < num_outputs; i++) {
 		fscanf(datafile, " %s", tempname);
@@ -635,6 +878,17 @@ int main(int argc, char** argv) {
 			}
 		}
 		printf("\n");
+	}
+	/*Free the linked lists*/
+	struct var* currVar;
+	while((currVar = head) != NULL) {
+		head = head->next;
+		free(currVar);
+	}
+	struct line* currLine;
+	while((currLine = linehead) != NULL) {
+		linehead = linehead->next;
+		free(currLine);
 	}
 	return 0;
 }
