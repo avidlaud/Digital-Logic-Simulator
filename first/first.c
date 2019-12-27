@@ -879,5 +879,16 @@ int main(int argc, char** argv) {
 		}
 		printf("\n");
 	}
+	/*Free the linked lists*/
+	struct var* currVar;
+	while((currVar = head) != NULL) {
+		head = head->next;
+		free(currVar);
+	}
+	struct line* currLine;
+	while((currLine = linehead) != NULL) {
+		linehead = linehead->next;
+		free(currLine);
+	}
 	return 0;
 }
