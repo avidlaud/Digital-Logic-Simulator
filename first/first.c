@@ -1,92 +1,4 @@
-#include<stdlib.h>
-#include<stdio.h>
-#include<string.h>
-#include<stdbool.h>
-
-void insert(char*, int);
-void insertLine(int, int, int, char**, char**, char**);
-int exists(char*);
-bool validPowerTwo(int);
-int log_2(int);
-void setValue(char*, int);
-int getValue(char*);
-int myNot(int);
-int myAnd(int, int);
-int myOr(int, int);
-int myNand(int, int);
-int myNor(int, int);
-int myXor(int, int);
-int myXnor(int, int);
-int myDecoder(int*, int);
-int myMultiplexer(int*, int*, int);
-int grayToBinary(int);
-int binaryToGray(int);
-int* genGrayCode(int);
-void makeNot(FILE*);
-void makeAnd(FILE*);
-void makeOr(FILE*);
-void makeNand(FILE*);
-void makeNor(FILE*);
-void makeXor(FILE*);
-void makeXnor(FILE*);
-void makeDecoder(FILE*);
-void makeMultiplexer(FILE*);
-
-/*
- * Structure: var
- *
- * Linked list node to store the name and values of the input, temporary, and output variables.
- *
- * name: String of variable name
- *
- * value: Logical value of variable: 0 or 1
- *
- */
-
-struct var {
-	char* name;
-	int value;
-	struct var* next;
-};
-
-/*
- * Structure: line
- *
- * Linked list node to store components of the circuit
- *
- * oper: The type of logic gate
- *	0:NOT
- *	1:AND
- *	2:OR
- *	3:NAND
- *	4:NOR
- *	5:XOR
- *	6:XNOR
- *	7:DECODER
- *	8:MULTIPLEXER
- *
- * num_inputs: Number of input variables, needs to be a power of two
- *
- * num_outputs: Number of output variables
- *
- * inputs: String array of input variable names, used to find the var structs
- *
- * outputs: String array of output variable names, used to find the var structs
- *
- * multi: Only used for multiplexers (oper=8)
- *	Store the encoding of the the multiplexer
- *
- */
-
-struct line {
-	int oper;
-	int num_inputs;
-	int num_outputs;
-	char** inputs;
-	char** outputs;
-	char** multi;
-	struct line* next;
-};
+#include "first.h"
 
 struct var* head = NULL;
 int num_vars = 0;
@@ -105,7 +17,7 @@ struct line* linehead = NULL;
  *
  */
 void insert(char* name, int value) {
-	
+
 	/*Variable already exists*/
 	if(exists(name) == 1) {
 		return;
@@ -121,7 +33,6 @@ void insert(char* name, int value) {
 	num_vars++;
 	return;
 }
-
 
 /*
  * Function: insertLine
@@ -282,7 +193,7 @@ void setValue(char* name, int value) {
  *
  * name: The name of the variable
  *
- * returns: The value of the variable (0 or 1) or 
+ * returns: The value of the variable (0 or 1) or
  * 	0 or 1 if the input string is "0" or "1" respectively
  */
 int getValue(char* name) {
@@ -483,7 +394,7 @@ void makeAnd(FILE* datafile) {
 	free(in);
 	free(out[0]);
 	free(out);
-}	
+}
 
 /*
  * Function: makeOr
@@ -541,7 +452,6 @@ void makeNand(FILE* datafile) {
 	free(in);
 	free(out[0]);
 	free(out);
-
 }
 
 /*
@@ -663,7 +573,6 @@ void makeDecoder(FILE* datafile) {
 		insert(out[i], 0);
 	}
 	insertLine(7, num_inputs, num_outputs, in, out, NULL);
-	/*Free string arrays*/
 }
 
 /*
@@ -864,7 +773,7 @@ int main(int argc, char** argv) {
 					break;
 					}
 			}
-			ptr=ptr->next; //Move to next operation	
+			ptr=ptr->next; //Move to next operation
 		}
 		/*Print the inputted value*/
 		for(int k = 0; k < num_inputs; k++) {
