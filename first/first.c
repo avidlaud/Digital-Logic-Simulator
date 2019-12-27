@@ -195,24 +195,15 @@ int getValue(char* name) {
 }
 
 int myNot(int in) {
-	if(in == 1) {
-		return 0;
-	}
-	return 1;
+	return (in == 0);
 }
 
 int myAnd(int in1, int in2) {
-	if((in1 == 1) && (in2 == 1)) {
-		return 1;
-	}
-	return 0;
+	return in1 & in2;
 }
 
 int myOr(int in1, int in2) {
-	if((in1 + in2) >= 1) {
-		return 1;
-	}
-	return 0;
+	return in1 | in2;
 }
 
 int myNand(int in1, int in2) {
@@ -224,10 +215,7 @@ int myNor(int in1, int in2) {
 }
 
 int myXor(int in1, int in2) {
-	if((in1 + in2) == 1) {
-		return 1;
-	}
-	return 0;
+	return in1 ^ in2;
 }
 
 int myXnor(int in1, int in2) {
